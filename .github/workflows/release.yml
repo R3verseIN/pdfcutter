@@ -52,25 +52,33 @@ jobs:
       - name: Install Wails
         run: go install github.com/wailsapp/wails/v2/cmd/wails@latest
 
-      - name: Build Wails App
+      - name: Build Windows App
+        if: runner.os == 'Windows'
+        run: wails build -platform ${{ matrix.platform }} -nsis
+        
+      - name: Build Mac/Linux App
+        if: runner.os != 'Windows'
         run: wails build -platform ${{ matrix.platform }} -tags webkit2_41
 
-      # We must zip the macOS .app folder because GitHub Releases cannot accept raw folders
-      - name: Zip macOS App Bundle
+      - name: Create macOS DMG
         if: runner.os == 'macOS'
         run: |
           cd build/bin
-          zip -r pdfcutter-${{ matrix.build }}.zip pdfcutter.app
+          hdiutil create -volname "PDFStudio" -srcfolder pdfcutter.app -ov -format UDZO pdfcutter-${{ matrix.build }}.dmg
           rm -rf pdfcutter.app
 
-      # Rename Linux and Windows binaries so they don't overwrite each other in the release
-      - name: Rename Linux Binary
+      - name: Create Linux DEB
         if: runner.os == 'Linux'
-        run: mv build/bin/pdfcutter build/bin/pdfcutter-${{ matrix.build }}
-
-      - name: Rename Windows Binary
+        run: |
+          sudo apt-get install -y ruby ruby-dev rubygems
+          sudo gem install fpm
+          cd build/bin
+          fpm -s dir -t deb -n "pdfcutter" -v "1.0.0" -p pdfcutter-${{ matrix.build }}.deb pdfcutter=/usr/local/bin/pdfcutter
+          rm pdfcutter
+          
+      - name: Clean up Windows Raw Binaries
         if: runner.os == 'Windows'
-        run: Rename-Item -Path "build\bin\pdfcutter.exe" -NewName "pdfcutter-${{ matrix.build }}.exe"
+        run: Remove-Item -Path "build\bin\pdfcutter.exe"
 
       # Upload binaries to the GitHub Actions tab (so you can download them even on manual runs)
       - name: Upload Build Artifacts
