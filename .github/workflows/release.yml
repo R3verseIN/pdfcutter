@@ -48,7 +48,7 @@ jobs:
         run: go install github.com/wailsapp/wails/v2/cmd/wails@latest
 
       - name: Build Wails App
-        run: wails build -platform ${{ matrix.platform }}
+        run: wails build -platform ${{ matrix.platform }} -tags webkit2_41
 
       # We must zip the macOS .app folder because GitHub Releases cannot accept raw folders
       - name: Zip macOS App Bundle
