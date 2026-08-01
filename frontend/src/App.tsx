@@ -2,7 +2,6 @@ import { useState } from 'react';
 import './index.css';
 import SplitTool from './components/SplitTool';
 import MergeTool from './components/MergeTool';
-import CropTool from './components/CropTool';
 
 function App() {
     const [activeTool, setActiveTool] = useState('split');
@@ -32,18 +31,11 @@ function App() {
                 >
                     Merge PDFs
                 </button>
-                <button 
-                    className={`nav-item ${activeTool === 'crop' ? 'active' : ''}`} 
-                    onClick={() => setActiveTool('crop')}
-                >
-                    Crop PDF
-                </button>
             </aside>
             <main className="main-content">
                 <div className="glass-panel" style={{ padding: '40px', minHeight: '100%', borderRadius: '24px' }}>
                     {activeTool === 'split' && <SplitTool />}
                     {activeTool === 'merge' && <MergeTool />}
-                    {activeTool === 'crop' && <CropTool />}
                 </div>
             </main>
         </div>

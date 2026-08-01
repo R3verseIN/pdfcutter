@@ -5,8 +5,6 @@ import (
 	"strings"
 
 	"github.com/pdfcpu/pdfcpu/pkg/api"
-	"github.com/pdfcpu/pdfcpu/pkg/pdfcpu/model"
-	"github.com/pdfcpu/pdfcpu/pkg/pdfcpu/types"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
@@ -77,10 +75,16 @@ func (a *App) SplitPDF(inFile string, outDir string) string {
 
 func (a *App) TrimPDF(inFile string, pages string, outFile string) string {
 	var selectedPages []string
+	var err error
+	
 	if strings.TrimSpace(pages) != "" {
-		selectedPages = strings.Split(pages, ",")
+		selectedPages, err = api.ParsePageSelection(pages)
+		if err != nil {
+			return "Invalid page selection: " + err.Error()
+		}
 	}
-	err := api.TrimFile(inFile, outFile, selectedPages, nil)
+	
+	err = api.TrimFile(inFile, outFile, selectedPages, nil)
 	if err != nil {
 		return err.Error()
 	}
@@ -89,22 +93,6 @@ func (a *App) TrimPDF(inFile string, pages string, outFile string) string {
 
 func (a *App) MergePDFs(inFiles []string, outFile string) string {
 	err := api.MergeCreateFile(inFiles, outFile, false, nil)
-	if err != nil {
-		return err.Error()
-	}
-	return ""
-}
-
-func (a *App) CropPDF(inFile string, pages string, margins string, outFile string) string {
-	box, err := model.ParseBox(margins, types.POINTS)
-	if err != nil {
-		return "Invalid margins: " + err.Error()
-	}
-	var selectedPages []string
-	if strings.TrimSpace(pages) != "" {
-		selectedPages = strings.Split(pages, ",")
-	}
-	err = api.CropFile(inFile, outFile, selectedPages, box, nil)
 	if err != nil {
 		return err.Error()
 	}
