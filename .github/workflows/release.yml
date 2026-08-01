@@ -1,18 +1,16 @@
 name: Wails Release Build
 
 on:
-  workflow_dispatch: # Allows manual triggering from the GitHub UI
+  workflow_dispatch:
   push:
     branches:
       - main
       - master
     tags:
-      - 'v*' # This workflow runs automatically when you push a tag like v1.0.0
+      - 'v*'
 
 jobs:
   build:
-    permissions:
-      contents: write # Grants the action permission to create a Release
     strategy:
       fail-fast: false
       matrix:
@@ -34,7 +32,6 @@ jobs:
             platform: linux/arm64
 
     runs-on: ${{ matrix.os }}
-
     steps:
       - name: Checkout Source Code
         uses: actions/checkout@v4
@@ -44,10 +41,12 @@ jobs:
         with:
           go-version: '1.21'
 
-      # Linux requires system dependencies to build the WebKit bindings
       - name: Install Linux Dependencies
         if: runner.os == 'Linux'
-        run: sudo apt-get update && sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev
+        run: |
+          sudo apt-get update 
+          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev ruby ruby-dev rubygems
+          sudo gem install fpm
 
       - name: Install Wails
         run: go install github.com/wailsapp/wails/v2/cmd/wails@latest
@@ -70,8 +69,6 @@ jobs:
       - name: Create Linux DEB
         if: runner.os == 'Linux'
         run: |
-          sudo apt-get install -y ruby ruby-dev rubygems
-          sudo gem install fpm
           cd build/bin
           fpm -s dir -t deb -n "pdfcutter" -v "1.0.0" -p pdfcutter-${{ matrix.build }}.deb pdfcutter=/usr/local/bin/pdfcutter
           rm pdfcutter
@@ -80,21 +77,37 @@ jobs:
         if: runner.os == 'Windows'
         run: Remove-Item -Path "build\bin\pdfcutter.exe"
 
-      # Upload binaries to the GitHub Actions tab (so you can download them even on manual runs)
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: pdfcutter-${{ matrix.build }}
           path: build/bin/*
 
-      # Create an official permanent release if you pushed a tag (e.g. v1.0.0)
-      - name: Create Stable Release
-        if: startsWith(github.ref, 'refs/tags/')
-        uses: softprops/action-gh-release@v2
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
         with:
-          files: build/bin/*
+          fetch-depth: 0
 
-      # Create a "Continuous Build" release that updates automatically on every commit
+      - name: Download all build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: Move Latest Tag
+        if: ${{ !startsWith(github.ref, 'refs/tags/') }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -f latest
+          git push origin -f latest
+
       - name: Create Continuous Release (Latest)
         if: ${{ !startsWith(github.ref, 'refs/tags/') }}
         uses: softprops/action-gh-release@v2
@@ -102,4 +115,10 @@ jobs:
           tag_name: latest
           name: Latest Continuous Build
           prerelease: true
-          files: build/bin/*
+          files: artifacts/*
+
+      - name: Create Stable Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/*
