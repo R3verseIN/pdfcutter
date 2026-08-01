@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import './index.css';
+import { BrowserOpenURL } from '../wailsjs/runtime/runtime';
 import SplitTool from './components/SplitTool';
 import MergeTool from './components/MergeTool';
 
@@ -31,6 +32,18 @@ function App() {
                 >
                     Merge PDFs
                 </button>
+                
+                <div style={{ marginTop: 'auto', padding: '12px', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                    <a 
+                        href="#" 
+                        onClick={(e) => { e.preventDefault(); BrowserOpenURL("https://github.com/r3versein"); }}
+                        style={{ color: 'var(--text-secondary)', textDecoration: 'none', transition: 'color 0.2s' }}
+                        onMouseOver={(e) => e.currentTarget.style.color = 'var(--text-primary)'}
+                        onMouseOut={(e) => e.currentTarget.style.color = 'var(--text-secondary)'}
+                    >
+                        github.com/r3versein
+                    </a>
+                </div>
             </aside>
             <main className="main-content">
                 <div className="glass-panel" style={{ padding: '40px', minHeight: '100%', borderRadius: '24px' }}>
