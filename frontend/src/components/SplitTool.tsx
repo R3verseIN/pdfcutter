@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { SelectPDFs, SelectDirectory, SelectOutputFile, SplitPDF, TrimPDF } from '../../wailsjs/go/main/App';
+import { SelectPDFs, SelectDirectory, SplitPDF, TrimPDF } from '../../wailsjs/go/main/App';
 
 export default function SplitTool() {
     const [file, setFile] = useState<string>('');
@@ -12,18 +12,18 @@ export default function SplitTool() {
     const handleSelectFile = async () => {
         const files = await SelectPDFs(false);
         if (files && files.length > 0) {
-            setFile(files[0]);
+            const selectedFile = files[0];
+            setFile(selectedFile);
+            
+            // Auto-set the output directory to the same directory as the input file
+            const dir = selectedFile.substring(0, selectedFile.lastIndexOf('/'));
+            setOutDest(dir);
             setMessage(null);
         }
     };
 
     const handleSelectDest = async () => {
-        let dest = '';
-        if (mode === 'split') {
-            dest = await SelectDirectory();
-        } else {
-            dest = await SelectOutputFile();
-        }
+        const dest = await SelectDirectory();
         if (dest) {
             setOutDest(dest);
             setMessage(null);
@@ -32,7 +32,7 @@ export default function SplitTool() {
 
     const handleExecute = async () => {
         if (!file || !outDest) {
-            setMessage({ type: 'error', text: 'Please select a PDF file and an output destination.' });
+            setMessage({ type: 'error', text: 'Please select a PDF file and an output directory.' });
             return;
         }
 
@@ -85,7 +85,6 @@ export default function SplitTool() {
                 <label>Mode</label>
                 <select value={mode} onChange={(e) => {
                     setMode(e.target.value as 'split' | 'extract');
-                    setOutDest(''); // reset destination since type changes
                 }}>
                     <option value="extract">Extract Specific Pages (e.g. 1-5)</option>
                     <option value="split">Split all pages into separate files</option>
@@ -94,21 +93,21 @@ export default function SplitTool() {
 
             {mode === 'extract' && (
                 <div className="form-group">
-                    <label>Pages to Extract</label>
+                    <label>Pages to Extract (Use commas to extract multiple separate ranges!)</label>
                     <input 
                         type="text" 
                         value={pages} 
                         onChange={(e) => setPages(e.target.value)} 
-                        placeholder="e.g. 1-5, 8, 11-13" 
+                        placeholder="e.g. 1-2, 4-5" 
                     />
                 </div>
             )}
 
             <div className="form-group">
-                <label>{mode === 'split' ? 'Output Directory' : 'Save Extracted File As'}</label>
+                <label>Output Directory</label>
                 <div style={{ display: 'flex', gap: '12px' }}>
-                    <input type="text" readOnly value={outDest} placeholder={mode === 'split' ? 'Select folder...' : 'output.pdf...'} />
-                    <button className="button secondary" onClick={handleSelectDest}>Browse</button>
+                    <input type="text" readOnly value={outDest} placeholder="Auto-generated folder path..." />
+                    <button className="button secondary" onClick={handleSelectDest}>Change</button>
                 </div>
             </div>
 

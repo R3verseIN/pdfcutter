@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"path/filepath"
 	"strings"
 
 	"github.com/pdfcpu/pdfcpu/pkg/api"
@@ -73,21 +74,36 @@ func (a *App) SplitPDF(inFile string, outDir string) string {
 	return ""
 }
 
-func (a *App) TrimPDF(inFile string, pages string, outFile string) string {
-	var selectedPages []string
-	var err error
+func (a *App) TrimPDF(inFile string, pages string, outDir string) string {
+	if strings.TrimSpace(pages) == "" {
+		return "No pages specified"
+	}
 	
-	if strings.TrimSpace(pages) != "" {
-		selectedPages, err = api.ParsePageSelection(pages)
+	baseName := filepath.Base(inFile)
+	ext := filepath.Ext(baseName)
+	nameWithoutExt := strings.TrimSuffix(baseName, ext)
+
+	ranges := strings.Split(pages, ",")
+	for _, r := range ranges {
+		r = strings.TrimSpace(r)
+		if r == "" {
+			continue
+		}
+		
+		selectedPages, err := api.ParsePageSelection(r)
 		if err != nil {
-			return "Invalid page selection: " + err.Error()
+			return "Invalid page selection for '" + r + "': " + err.Error()
+		}
+		
+		safeRangeName := strings.ReplaceAll(r, " ", "")
+		outFile := filepath.Join(outDir, nameWithoutExt+"_"+safeRangeName+".pdf")
+		
+		err = api.TrimFile(inFile, outFile, selectedPages, nil)
+		if err != nil {
+			return err.Error()
 		}
 	}
 	
-	err = api.TrimFile(inFile, outFile, selectedPages, nil)
-	if err != nil {
-		return err.Error()
-	}
 	return ""
 }
 
