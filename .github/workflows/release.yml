@@ -51,6 +51,10 @@ jobs:
       - name: Install Wails
         run: go install github.com/wailsapp/wails/v2/cmd/wails@latest
 
+      - name: Install NSIS (Windows)
+        if: runner.os == 'Windows'
+        run: choco install nsis
+
       - name: Build Windows App
         if: runner.os == 'Windows'
         run: wails build -platform ${{ matrix.platform }} -nsis
