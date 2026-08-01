@@ -3,6 +3,9 @@ name: Wails Release Build
 on:
   workflow_dispatch: # Allows manual triggering from the GitHub UI
   push:
+    branches:
+      - main
+      - master
     tags:
       - 'v*' # This workflow runs automatically when you push a tag like v1.0.0
 
@@ -74,9 +77,19 @@ jobs:
           name: pdfcutter-${{ matrix.build }}
           path: build/bin/*
 
-      # Upload to a GitHub Release ONLY if a tag was actually pushed
-      - name: Upload Artifacts to Release
+      # Create an official permanent release if you pushed a tag (e.g. v1.0.0)
+      - name: Create Stable Release
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
+          files: build/bin/*
+
+      # Create a "Continuous Build" release that updates automatically on every commit
+      - name: Create Continuous Release (Latest)
+        if: ${{ !startsWith(github.ref, 'refs/tags/') }}
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: latest
+          name: Latest Continuous Build
+          prerelease: true
           files: build/bin/*
